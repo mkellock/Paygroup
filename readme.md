@@ -3,6 +3,7 @@
 Sample project for the Paygroup technical test :)
 
 ## Infrastructure as Code
+A regular CF file, run as usual
 
 ## Code Development
 
