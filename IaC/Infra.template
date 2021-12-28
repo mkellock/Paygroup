@@ -1,0 +1,122 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "ApplicationServer": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "ApplicationServerInstanceProfile"
+                },
+                "ImageId": "ami-00f7e5c52c0f43726",
+                "InstanceType": "t2.micro",
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "ApplicationServerSG"
+                    }
+                ]
+            },
+            "DependsOn": [
+                "ApplicationServerInstanceProfile"
+            ]
+        },
+        "ApplicationQueue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {}
+        },
+        "AppServerAccess": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        "AppBucketWriteAccess": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "AppBucketWriteAccess",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "VisualEditor0",
+                            "Effect": "Allow",
+                            "Action": "s3:PutObject",
+                            "Resource": {
+                                "Fn::Sub": "arn:aws:s3:::${ApplicationBucket}/*"
+                            }
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "AppServerAccess"
+                    }
+                ]
+            },
+            "DependsOn": [
+                "ApplicationBucket"
+            ]
+        },
+        "AppQueueReadMessageAccess": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "AppQueueReadMessageAccess",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "VisualEditor0",
+                            "Effect": "Allow",
+                            "Action": "sqs:ReceiveMessage",
+                            "Resource": {
+                                "Fn::Sub": "arn:aws:sqs:${AWS::Region}:*:${ApplicationQueue.QueueName}"
+                            }
+                        }
+                    ]
+                },
+                "Roles": [
+                    {
+                        "Ref": "AppServerAccess"
+                    }
+                ]
+            },
+            "DependsOn": [
+                "ApplicationQueue"
+            ]
+        },
+        "ApplicationServerInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Roles": [
+                    {
+                        "Ref": "AppServerAccess"
+                    }
+                ]
+            }
+        },
+        "ApplicationBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {}
+        },
+        "ApplicationServerSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Security group for the application server"
+            }
+        }
+    }
+}
